@@ -4,6 +4,7 @@ import re
 import requests
 import sys
 import traceback
+import yaml
 from acdh.resourceCatalog.harvester.DatasetInstance import DatasetInstance
 
 
@@ -16,6 +17,7 @@ def run():
     parser.add_argument('--limit', type=int, default=999999, help='Limit number of processed Redmine resources. Usefull for testing.')
     parser.add_argument('--resCatUrl', default='https://???')
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--dumpTo', help='If provided, dumps the harvested data serialized as yaml into a given file.')
     parser.add_argument('redmineUser')
     parser.add_argument('redminePswd')
     args = parser.parse_args()
@@ -29,6 +31,10 @@ def run():
     logging.info('Creating/updating resource catalog')
     for i in datasets:
         i.updateOrCreate(args.resCatUrl)
+    #TODO temporary solution - drop dataset instances to a file
+    if args.dumpTo is not None:
+        with open('data.yaml', 'w') as f:
+            f.write(yaml.dump(datasets))
 
     logging.info('Finished')
 
