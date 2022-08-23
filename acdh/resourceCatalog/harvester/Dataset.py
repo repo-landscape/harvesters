@@ -14,7 +14,7 @@ class Dataset:
         d.actors = []
         d.actors.append({'role': 'ContactPerson', 'personId': issue['author']['id']})
         if 'assinged_to' in issue:
-            d.actors.append({'role': 'DataCurator', 'personId': harverster.getPersonId(issue['assigned_to']['id'])})
+            d.actors.append({'role': 'DataCurator', 'personId': harverster.getPersonIdFn(issue['assigned_to']['id'])})
         for i in [x for x in issue['custom_fields'] if x['name'] == 'Assignees']:
             for j in i['value']:
                 d.actors.append({'role': 'Editor', 'personId': getPersonIdFn(j)})
