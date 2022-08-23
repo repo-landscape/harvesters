@@ -5,7 +5,10 @@ import requests
 import sys
 import traceback
 import yaml
+from acdh.resourceCatalog.harvester.Person import Person
 from acdh.resourceCatalog.harvester.DatasetInstance import DatasetInstance
+from acdh.resourceCatalog.harvester.Dataset import Dataset
+from acdh.resourceCatalog.harvester.Project import Project
 
 
 def run():
@@ -27,20 +30,23 @@ def run():
     logging.basicConfig(stream=sys.stdout, format='%(levelname)s:%(asctime)s: %(message)s', level=logging.DEBUG if args.verbose else logging.INFO)
 
     redmine = Redmine(args.redmineUrl, (args.redmineUser, args.redminePswd))
-    datasets = redmine.harvest(args.limit, args.queryId, args.resourceId)
+    data = redmine.harvest(args.limit, args.queryId, args.resourceId)
     logging.info('Creating/updating resource catalog')
-    for i in datasets:
-        i.updateOrCreate(args.resCatUrl)
+    for entities in data.values():
+        for entity in entities:
+            entity.updateOrCreate(args.resCatUrl)
     #TODO temporary solution - drop dataset instances to a file
     if args.dumpTo is not None:
-        with open('data.yaml', 'w') as f:
-            f.write(yaml.dump(datasets))
+        with open(args.dumpTo, 'w') as f:
+            f.write(yaml.dump(data))
 
     logging.info('Finished')
 
 class Redmine:
     baseUrl = None
     session = None
+    projects = None
+    persons = None
 
     def __init__(self, baseUrl, auth):
         self.baseUrl = baseUrl
@@ -48,6 +54,9 @@ class Redmine:
         self.session.auth = auth
 
     def harvest(self, limit=999999, queryId=None, resourceId=None):
+        self.projects = {}
+        self.persons = {}
+
         resp = requests.get(f"{self.baseUrl}/trackers.json")
         trackers = resp.json()['trackers']
         trackers = dict(zip([x['name'] for x in trackers], [x['id'] for x in trackers]))
@@ -67,19 +76,38 @@ class Redmine:
 
         logging.info('Finding projects issues belong to')
         for i in issues:
-            i['Project'] = self.findProject(i)
+            i['ProjectId'] = self.findProject(i)
 
         logging.info('Casting issues to resource catalog objects')
         datasets = []
+        datasetInstances = []
         for i in issues:
+            if i['ProjectId'] is None:
+                continue
             try:
-                datasets.append(DatasetInstance.fromRedmine(i))
+                dataset = Dataset.fromRedmine(i, self.getPersonId)
+                datasets.append(dataset)
+                locationPaths = [x['value'] for x in i['custom_fields'] if x['name'] == 'location_path' and x['value'] != ''][0]
+                for locationPath in re.split('[,; \n]', locationPaths):
+                    locationPath = locationPath.strip()
+                    if locationPath == '':
+                        continue
+                    try:
+                        datasetInstances.append(DatasetInstance.fromRedmine(i, locationPath, dataset.id))
+                    except Exception as e:
+                        logging.error(str(e))
+                        logging.debug(traceback.format_exc())
             except Exception as e:
                 logging.error(str(e))
                 logging.debug(traceback.format_exc())
-        logging.info(f'  {len(datasets)} dataset instance objects created')
+        logging.info(f'  {len(datasets)} dataset and {len(datasetInstances)} dataset instance objects created')
 
-        return datasets
+        return {
+            'persons': list(self.persons.values()),
+            'projects': list(self.projects.values()),
+            'datasets': datasets,
+            'datasetInstances': datasetInstances
+        }
     
     def getWithPaging(self, url, param, limit):
         key = re.sub('^.*/([^.]+)[.].*$', '\\1', url)
@@ -99,19 +127,31 @@ class Redmine:
     def findProject(self, issue):
         parent = issue
         while 'parent' in parent and parent['tracker']['name'] != 'Project':
+            if parent["parent"]["id"] in self.projects:
+                return parent["parent"]["id"]
             resp = self.session.get(f'{self.baseUrl}/issues/{parent["parent"]["id"]}.json')
             parent = resp.json()['issue']
         if parent['tracker']['name'] == 'Project':
-            return parent
+            self.projects[parent['id']] = Project.fromRedmine(parent, self.getPersonId)
+            return self.projects[parent['id']].id
     
         if 'relations' not in issue:
             return None
         for rel in [x for x in issue['relations'] if x['relation_type'] == 'relates']:
             id = rel["issue_id"] if rel["issue_id"] != issue['id'] else rel["issue_to_id"]
+            if id in self.projects:
+                return self.projects[id]
             resp = self.session.get(f'{self.baseUrl}/issues/{id}.json')
             parent = resp.json()['issue']
             if parent['tracker']['name'] == 'Project':
-                return parent
+                self.projects[id] = Project.fromRedmine(parent, self.getPersonId)
+                return self.projects[id].id
         
         return None
+
+    def getPersonId(self, redmineId):
+        if redmineId not in self.persons:
+            resp = self.session.get(f"{self.baseUrl}/users/{redmineId}.json")
+            self.persons[redmineId] = Person.fromRedmine(resp.json()['user'])
+        return self.persons[redmineId].id
 

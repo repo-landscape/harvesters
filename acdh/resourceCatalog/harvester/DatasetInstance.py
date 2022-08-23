@@ -1,37 +1,22 @@
 class DatasetInstance:
-    @staticmethod
-    def fromRedmine(issue):
-        di = DatasetInstance()
-        di.locationPath = [x['value'] for x in issue['custom_fields'] if x['name'] == 'location_path' and x['value'] != ''][0]
-        di.name = issue['subject']
-        di.project = {
-            'id': issue['project']['id'], 
-            'name': issue['project']['name'],
-        }
-        di.owner = {
-            'id': issue['author']['id'], 
-            'identifiers': [{
-                'type': 'redmine', 
-                'id': f"https://redmine.acdh.oeaw.ac.at/users/{issue['author']['id']}", 
-                'label': issue['author']['name']
-            }]
-        }
-        di.contributors = [{
-            'id': issue['assigned_to']['id'],
-            'identifiers': [{
-                'type': 'redmine', 
-                'id': f"https://redmine.acdh.oeaw.ac.at/users/{issue['assigned_to']['id']}", 
-                'label': issue['assigned_to']['name']
-            }]
-        }]
-        
-        return di
+    N = 0
 
+    @staticmethod
+    def fromRedmine(issue, locationPath, datasetId):
+        DatasetInstance.N += 1
+
+        d = DatasetInstance()
+        d.id = DatasetInstance.N
+        d.datasetId = datasetId
+        d.locationPath = locationPath
+        d.state = 'To be filled in by a harvester'
+        return d
+
+    id = None
+    datasetId = None
     locationPath = None
-    name = None
-    project = None
-    owner = None
-    contributors = None
+    description = None
+    state = None
 
     @staticmethod
     def fromResourceCatalog(baseUrl, id):
@@ -48,10 +33,10 @@ class DatasetInstance:
 
     def __iter__(self):
         return {
+            'id': self.id,
+            'datasetId': self.datasetId,
             'locationPath': self.locationPath,
-            'name': self.name,
-            'project': self.project,
-            'owner': self.owner,
-            'contributors': self.contributors
+            'description': self.description,
+            'state': self.state
         }
 
