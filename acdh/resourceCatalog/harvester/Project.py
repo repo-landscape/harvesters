@@ -44,15 +44,3 @@ class Project:
         #TODO
         pass
 
-    def __iter__(self):
-        return {
-            'projectId': self.locationPath,
-            'redmineIssueId': self.redmineIssueId,
-            'name': self.name,
-            'startDate': self.startDate,
-            'endDate': self.endDate,
-            'dataSteward': self.dataSteward,
-            'projectLeader': self.projectLeader,
-            'actors': self.actors
-        }
-

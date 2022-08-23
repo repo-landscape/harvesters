@@ -31,12 +31,3 @@ class DatasetInstance:
         #TODO
         pass
 
-    def __iter__(self):
-        return {
-            'datasetInstanceId': self.id,
-            'datasetId': self.datasetId,
-            'locationPath': self.locationPath,
-            'description': self.description,
-            'state': self.state
-        }
-

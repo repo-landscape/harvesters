@@ -40,13 +40,3 @@ class Dataset:
         #TODO
         pass
 
-    def __iter__(self):
-        return {
-            'datasetId': self.id,
-            'redmineIssueId': self.redmineIssueId,
-            'projectId': self.projectId,
-            'name': self.name,
-            'description': self.description,
-            'actors': self.actors
-        }
-

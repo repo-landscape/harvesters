@@ -38,9 +38,3 @@ class Person:
         #TODO
         pass
 
-    def __iter__(self):
-        return {
-            'personId': self.id,
-            'identifiers': self.identifiers
-        }
-
