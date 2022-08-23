@@ -33,7 +33,7 @@ class DatasetInstance:
 
     def __iter__(self):
         return {
-            'id': self.id,
+            'datasetInstanceId': self.id,
             'datasetId': self.datasetId,
             'locationPath': self.locationPath,
             'description': self.description,

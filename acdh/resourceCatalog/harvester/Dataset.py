@@ -12,12 +12,12 @@ class Dataset:
         d.name = issue['subject']
         d.description = issue['description']
         d.actors = []
-        d.actors.append({'role': 'ContactPerson', 'id': issue['author']['id']})
+        d.actors.append({'role': 'ContactPerson', 'personId': issue['author']['id']})
         if 'assinged_to' in issue:
-            d.actors.append({'role': 'DataCurator', 'id': harverster.getPersonId(issue['assigned_to']['id'])})
+            d.actors.append({'role': 'DataCurator', 'personId': harverster.getPersonId(issue['assigned_to']['id'])})
         for i in [x for x in issue['custom_fields'] if x['name'] == 'Assignees']:
             for j in i['value']:
-                d.actors.append({'role': 'Editor', 'id': getPersonIdFn(j)})
+                d.actors.append({'role': 'Editor', 'personId': getPersonIdFn(j)})
         return d
 
     @staticmethod
@@ -42,7 +42,7 @@ class Dataset:
 
     def __iter__(self):
         return {
-            'id': self.id,
+            'datasetId': self.id,
             'redmineIssueId': self.redmineIssueId,
             'projectId': self.projectId,
             'name': self.name,

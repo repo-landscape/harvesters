@@ -40,7 +40,7 @@ class Person:
 
     def __iter__(self):
         return {
-            'id': self.id,
+            'personId': self.id,
             'identifiers': self.identifiers
         }
 

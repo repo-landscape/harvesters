@@ -13,13 +13,13 @@ class Project:
         d.endDate = issue['due_date']
         drupalUser = getPersonIdFn(issue['assigned_to']['id'] if 'assinged_to' in issue else issue['author']['id'])
         d.drupalUser = f"user{drupalUser}"
-        d.projectLeader = issue['author']['id']
         d.actors = []
+        d.actors.append({'role': 'ProjectLeader', 'personId': getPersonId(issue['author']['id'])})
         if 'assinged_to' in issue:
-            d.actors.append({'role': 'DataCurator', 'id': harverster.getPersonId(issue['assigned_to']['id'])})
+            d.actors.append({'role': 'DataCurator', 'personId': getPersonId(issue['assigned_to']['id'])})
         for i in [x for x in issue['custom_fields'] if x['name'] == 'Assignees']:
             for j in i['value']:
-                d.actors.append({'role': 'Editor', 'id': getPersonIdFn(j)})
+                d.actors.append({'role': 'Editor', 'personId': getPersonIdFn(j)})
         return d
 
     id = None
@@ -46,7 +46,7 @@ class Project:
 
     def __iter__(self):
         return {
-            'id': self.locationPath,
+            'projectId': self.locationPath,
             'redmineIssueId': self.redmineIssueId,
             'name': self.name,
             'startDate': self.startDate,
